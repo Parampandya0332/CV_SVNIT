@@ -1,126 +1,283 @@
-# Restormer Fine-Tuning for NTIRE 2026 Image Denoising (σ=50)
+# Restormer Fine-Tuning for NTIRE 2026 Image Denoising (σ = 50)
 
-This repository contains the training and evaluation code for our submission to the NTIRE 2026 Image Denoising Challenge (Gaussian noise σ=50).
+This repository contains the **training and evaluation code** for our submission to the **NTIRE 2026 Image Denoising Challenge (Gaussian Noise σ = 50)**.
 
-The method is based on the Restormer architecture with full fine-tuning on the DIV2K dataset.
+Our method is based on the **Restormer (Efficient Transformer for High-Resolution Image Restoration)** architecture and uses **full fine-tuning on the DIV2K dataset**.
+
+The repository provides a clean and reproducible implementation including:
+
+* Training pipeline
+* Validation strategy
+* Tiled inference for high-resolution images
+* Runtime evaluation
 
 ---
 
-Architecture
+# 1. Prerequisites
 
-We use the official Restormer model configuration:
+Before running the code, ensure the following software is installed.
 
-Input channels: 3  
-Output channels: 3  
-Embedding dimension: 48  
+## System Requirements
 
-Transformer blocks:
+* Python ≥ 3.8
+* PyTorch ≥ 2.0
+* CUDA-enabled GPU (recommended for training and inference)
+* Linux / Windows / Kaggle environment
 
-Encoder:
-4 → 6 → 6 → 8 blocks
+---
 
-Heads:
-1 → 2 → 4 → 8
+# 2. Python Dependencies
 
-FFN expansion factor:
+Install the required libraries:
+
+pip install torch torchvision
+pip install einops timm lmdb
+pip install pillow numpy
+
+These libraries are required for:
+
+* Transformer operations
+* Image processing
+* Dataset loading
+* Training and inference
+
+---
+
+# 3. Repository Setup
+
+Clone this repository:
+
+git clone https://github.com/<your-username>/<your-repository>.git
+cd <your-repository>
+
+Clone the official Restormer implementation inside the repository:
+
+git clone https://github.com/swz30/Restormer.git
+
+The Restormer folder provides the architecture implementation used by this project.
+
+---
+
+# 4. Dataset Preparation
+
+Training uses the **DIV2K dataset**.
+
+Download the dataset from:
+
+https://data.vision.ee.ethz.ch/cvl/DIV2K/
+
+Expected dataset structure:
+
+datasets/
+
+├── DIV2K_train_HR
+│     ├── 0001.png
+│     ├── 0002.png
+│     └── ...
+│
+└── DIV2K_valid_HR
+├── 0801.png
+├── 0802.png
+└── ...
+
+---
+
+# 5. Model Architecture
+
+We use the **Restormer architecture** with the following configuration:
+
+Input Channels: 3
+Output Channels: 3
+Embedding Dimension: 48
+
+Encoder Blocks:
+
+[4, 6, 6, 8]
+
+Attention Heads:
+
+[1, 2, 4, 8]
+
+FFN Expansion Factor:
+
 2.66
 
-LayerNorm:
+LayerNorm Type:
+
 BiasFree
 
-The model is initialized using pretrained weights trained for Gaussian color denoising σ=50.
+The model is initialized using **pretrained weights trained for Gaussian denoising with σ = 50**.
 
 ---
 
-Training Strategy
+# 6. Training Strategy
 
-Training dataset:
-DIV2K Train HR
+Training configuration:
 
-Validation dataset:
-DIV2K Valid HR
+Noise Level: σ = 50
+Patch Size: 256 × 256
+Iterations: 20000
+Batch Size: 1
 
-Patch size:
-256 × 256
+Optimizer: AdamW
 
-Noise model:
-Gaussian noise σ = 50
+Learning Rate: 1e-4
 
-Training iterations:
-20000
+Weight Decay: 1e-4
 
-Batch size:
-1
+Learning Rate Scheduler: Cosine Annealing
 
-Loss function:
-Charbonnier Loss
+Loss Function: Charbonnier Loss
 
-Optimizer:
-AdamW
-
-Learning rate:
-1e-4
-
-Weight decay:
-1e-4
-
-Learning rate scheduler:
-Cosine Annealing
-
-Mixed precision training:
-Yes (AMP)
-
-Validation is performed every 500 iterations using 100 fixed patches.
+Mixed Precision Training: Enabled (AMP)
 
 ---
 
-Modifications to Restormer
+# 7. Data Preparation During Training
 
-The Restormer architecture itself was not modified.
+During training:
 
-The following training strategies were applied:
+1. Images are randomly cropped into **256 × 256 patches**
+2. Gaussian noise with **σ = 50** is generated dynamically
+3. Noisy patches are used as input to the network
+4. Clean patches are used as supervision targets
 
-1. Fine-tuning using pretrained σ=50 weights  
-2. Random patch training (256×256)  
-3. Gaussian noise generation during training  
-4. Charbonnier loss instead of L2  
-5. Cosine annealing learning rate schedule  
-6. Mixed precision training for efficiency
+This approach increases the effective dataset size and improves model generalization.
 
 ---
 
-Evaluation Strategy
+# 8. Validation Strategy
 
-Evaluation is performed using tiled inference to process high-resolution images.
+Validation is performed using:
 
-Tile size:
-512
+100 fixed patches extracted from the DIV2K validation set.
 
-Tile overlap:
-32
+Validation occurs every **500 training iterations**.
 
-Reflection padding is applied to ensure that tiles are divisible by 8, which is required by the Restormer architecture.
+PSNR is computed to monitor denoising performance.
 
-Outputs from overlapping tiles are averaged to avoid boundary artifacts.
+The model achieving the **highest validation PSNR** is saved as the best checkpoint.
 
 ---
 
-Runtime
+# 9. Modifications Applied to Restormer
 
-Average runtime per image is computed during evaluation.
+The **core Restormer architecture was not modified**.
 
-Inference is performed using GPU acceleration.
+However, the following training strategies were applied:
+
+1. Full fine-tuning starting from pretrained σ=50 weights
+2. Random patch training (256×256 patches)
+3. On-the-fly Gaussian noise generation
+4. Charbonnier loss for stable optimization
+5. Cosine annealing learning rate scheduling
+6. Mixed precision training for faster GPU computation
+
+These modifications improve training stability and denoising performance.
 
 ---
 
-Repository Structure
+# 10. Training Instructions
 
-training.py  
-evaluation.py  
-Restormer/ (official repository)
+Run training using:
+
+python training.py
+
+Training steps:
+
+1. Load DIV2K training dataset
+2. Generate noisy image patches (σ = 50)
+3. Train Restormer using mixed precision
+4. Validate every 500 iterations
+5. Save the best performing model
+
+Saved checkpoints include:
+
+best_model.pth
+final_model.pth
 
 ---
 
-Usage
+# 11. Evaluation / Inference
 
-Training
+Place test images inside the folder:
+
+test_images/
+
+Run inference using:
+
+python evaluation.py
+
+The script will:
+
+1. Load the trained Restormer model
+2. Process test images using tiled inference
+3. Save denoised outputs
+
+Outputs will be saved in:
+
+results/
+
+---
+
+# 12. Evaluation Strategy
+
+High-resolution images are processed using **tiled inference** to avoid GPU memory overflow.
+
+Tile configuration:
+
+Tile Size: 512
+Tile Overlap: 32
+
+Steps used during inference:
+
+1. Each image is divided into overlapping tiles
+2. Tiles are padded to be divisible by 8 (required by Restormer)
+3. Each tile is denoised independently
+4. Overlapping outputs are averaged to remove boundary artifacts
+
+This strategy enables efficient processing of large images.
+
+---
+
+# 13. Runtime Measurement
+
+The evaluation script measures:
+
+Average runtime per image.
+
+Inference is performed using **GPU acceleration**.
+
+Runtime information is used for NTIRE submission requirements.
+
+---
+
+# 14. Repository Structure
+
+repository/
+
+├── Restormer/
+│
+├── training.py
+├── evaluation.py
+├── README.md
+│
+├── datasets/
+│     ├── DIV2K_train_HR
+│     └── DIV2K_valid_HR
+│
+├── test_images/
+│
+└── results/
+
+---
+
+# 15. Acknowledgement
+
+This work is based on the official Restormer implementation.
+
+Restormer: Efficient Transformer for High-Resolution Image Restoration
+
+Official repository:
+
+https://github.com/swz30/Restormer
