@@ -1,10 +1,10 @@
 # Restormer Fine-Tuning for NTIRE 2026 Image Denoising (σ = 50)
 
-This repository contains the **training and evaluation pipeline** used for the **NTIRE 2026 Image Denoising Challenge (Gaussian noise σ = 50)**.
+This repository contains the **training and evaluation pipeline** used for our submission to the **NTIRE 2026 Image Denoising Challenge (Gaussian Noise σ = 50)**.
 
-The approach is based on the **Restormer architecture**, a transformer-based model designed for high-resolution image restoration tasks.
+The approach is based on **Restormer (Efficient Transformer for High-Resolution Image Restoration)**, a transformer-based architecture designed for high-quality image restoration tasks.
 
-The model is **fine-tuned on the DIV2K dataset** and evaluated using tiled inference to handle high-resolution images efficiently.
+The model is **fine-tuned on the DIV2K dataset** and evaluated using **tiled inference** to efficiently process high-resolution images.
 
 ---
 
@@ -18,11 +18,11 @@ CV_SVNIT
 ├── README.md
 ├── requirements.txt
 │
-├── Restormer/              # official Restormer implementation
+├── Restormer/              # official Restormer repository
 │
-├── test_images/            # input noisy images
+├── test_images/            # noisy input images
 │
-└── results/                # output denoised images
+└── results/                # denoised output images
 ```
 
 ---
@@ -39,7 +39,7 @@ CUDA-enabled GPU (recommended)
 
 # 3. Install Dependencies
 
-Install required libraries:
+Install required libraries using:
 
 ```
 pip install -r requirements.txt
@@ -61,7 +61,7 @@ git clone https://github.com/Parampandya0332/CV_SVNIT.git
 cd CV_SVNIT
 ```
 
-Clone the official Restormer repository:
+Clone the official Restormer implementation:
 
 ```
 git clone https://github.com/swz30/Restormer.git
@@ -77,7 +77,7 @@ Download from:
 
 https://data.vision.ee.ethz.ch/cvl/DIV2K/
 
-Expected structure:
+Expected dataset structure:
 
 ```
 datasets/
@@ -121,7 +121,7 @@ Mixed precision training: Enabled (AMP)
 
 # 7. Training
 
-Run training:
+Run training using:
 
 ```
 python training.py
@@ -129,10 +129,10 @@ python training.py
 
 Training pipeline:
 
-1. Load DIV2K images
-2. Random crop 256×256 patches
-3. Add Gaussian noise (σ=50)
-4. Train Restormer
+1. Load DIV2K training images
+2. Randomly crop 256×256 patches
+3. Add Gaussian noise with σ = 50
+4. Train Restormer model
 5. Validate every 500 iterations
 6. Save best model based on PSNR
 
@@ -140,22 +140,35 @@ Training pipeline:
 
 # 8. Evaluation / Inference
 
-Place noisy test images in:
+Place noisy images inside:
 
 ```
 test_images/
 ```
 
-Run inference:
+Run inference using the CLI-based evaluation script:
 
 ```
-python evaluation.py
+python evaluation.py --input test_images --output results --weights best_model.pth
 ```
 
-Outputs will be saved in:
+Arguments:
+
+| Argument       | Description                          |
+| -------------- | ------------------------------------ |
+| --input        | Folder containing noisy input images |
+| --output       | Folder to save denoised outputs      |
+| --weights      | Path to trained model checkpoint     |
+| --tile_size    | Tile size used during inference      |
+| --tile_overlap | Overlap between tiles                |
+
+Example:
 
 ```
-results/
+python evaluation.py \
+--input test_images \
+--output results \
+--weights best_model.pth
 ```
 
 ---
@@ -175,12 +188,12 @@ model.load_state_dict(weights)
 ```
 {
  "model": state_dict,
- "optimizer": ...
+ "optimizer": ...,
  "scheduler": ...
 }
 ```
 
-The evaluation script automatically detects the checkpoint format and loads the correct weights.
+The script automatically detects the checkpoint type and loads the correct model weights.
 
 ---
 
@@ -196,18 +209,18 @@ Steps:
 
 1. Divide image into overlapping tiles
 2. Pad tiles so dimensions are divisible by 8
-3. Run Restormer on each tile
+3. Run Restormer inference on each tile
 4. Merge overlapping outputs
 
-This avoids GPU memory overflow and prevents boundary artifacts.
+This approach allows processing of large images without GPU memory overflow.
 
 ---
 
 # 11. Runtime Measurement
 
-Runtime is measured automatically during inference.
+Runtime is measured automatically during evaluation.
 
-The script prints:
+The script outputs:
 
 ```
 Runtime per image: X seconds
@@ -219,7 +232,7 @@ This metric is required for NTIRE evaluation.
 
 # 12. Testing the Repository
 
-To verify the repository runs correctly:
+To verify the repository works correctly:
 
 ```
 git clone https://github.com/Parampandya0332/CV_SVNIT.git
@@ -227,16 +240,16 @@ cd CV_SVNIT
 
 pip install -r requirements.txt
 
-python evaluation.py
+python evaluation.py --input test_images --output results --weights best_model.pth
 ```
 
-If the script finishes successfully and outputs images inside `results/`, the repository is correctly configured.
+If the script runs successfully and produces images in the `results/` folder, the repository is correctly configured.
 
 ---
 
 # 13. Acknowledgement
 
-This project is based on the official Restormer implementation.
+This work is based on the official Restormer implementation.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
 
